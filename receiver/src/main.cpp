@@ -4,8 +4,6 @@
 #include "bleinfo.h"
 
 BLECharacteristic *characteristicMessage;
-
-// Define JSON document size
 const size_t bufferSize = JSON_OBJECT_SIZE(20);
 
 byte baseStation = 0xFF;
@@ -46,7 +44,6 @@ class MessageCallbacks : public BLECharacteristicCallbacks
 
 void sendJsonOverBluetooth(int sender, int recipient, String packet, float snr, int rssi, long freqErr)
 {
-  // Create a JSON object
   StaticJsonDocument<bufferSize> jsonDoc;
   jsonDoc["sender"] = sender;
   jsonDoc["recipient"] = recipient;
