@@ -4,17 +4,40 @@
 import sx126x
 import json
 import time
+import sys
 
-# Initialize LoRa module
-# Using 868MHz frequency, address 0xFF (base station), 22dBm power, with RSSI enabled
-node = sx126x.sx126x(
-    serial_num="/dev/ttyAMA0",  # Serial port for Ubuntu on RPi
-    freq=868,                   # Frequency in MHz
-    addr=0xFF,                  # Base station address
-    power=22,                   # Power in dBm
-    rssi=True,                  # Enable RSSI reading
-    air_speed=2400              # Air speed (bps)
-)
+# Initialize LoRa module with error handling
+try:
+    node = sx126x.sx126x(
+        serial_num="/dev/ttyAMA0",
+        freq=868,
+        addr=0xFF,
+        power=22,
+        rssi=True,
+        air_speed=2400
+    )
+    
+    # Verify the serial connection
+    if not node.ser.is_open:
+        raise Exception("Failed to open serial port")
+        
+    # Try to write test data
+    node.ser.write(bytes([0xC1, 0x00, 0x09]))
+    time.sleep(0.1)
+    
+    if node.ser.in_waiting > 0:
+        response = node.ser.read(node.ser.in_waiting)
+        print("Module response:", [hex(x) for x in response])
+    else:
+        print("Warning: No response from module")
+
+except Exception as e:
+    print(f"Failed to initialize LoRa module: {e}")
+    print("Please check:")
+    print("1. Serial port permissions (run 'ls -l /dev/ttyAMA0')")
+    print("2. Hardware connections (M0, M1, TX, RX)")
+    print("3. UART configuration in /boot/firmware/config.txt")
+    sys.exit(1)
 
 def parse_sensor_data(data):
     try:
