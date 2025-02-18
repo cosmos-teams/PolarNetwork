@@ -8,12 +8,12 @@ import time
 # Initialize LoRa module
 # Using 868MHz frequency, address 0xFF (base station), 22dBm power, with RSSI enabled
 node = sx126x.sx126x(
-    serial_num="/dev/ttyS0",  # Serial port (ttyS0 for RPi)
-    freq=868,                 # Frequency in MHz
-    addr=0xFF,               # Base station address (matches baseStation in sensor code)
-    power=22,                # Power in dBm
-    rssi=True,               # Enable RSSI reading
-    air_speed=2400          # Air speed (bps)
+    serial_num="/dev/ttyAMA0",  # Serial port for Ubuntu on RPi
+    freq=868,                   # Frequency in MHz
+    addr=0xFF,                  # Base station address
+    power=22,                   # Power in dBm
+    rssi=True,                  # Enable RSSI reading
+    air_speed=2400              # Air speed (bps)
 )
 
 def parse_sensor_data(data):
