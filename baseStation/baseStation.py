@@ -41,12 +41,19 @@ except Exception as e:
 
 def parse_sensor_data(data):
     try:
-        # Extract the payload from the received data
-        # Skip the header bytes (sender, recipient, length)
-        payload = data[3:-1].decode('utf-8')
+        # Convert bytes to string
+        data_str = data[3:-1].decode('utf-8')
+        
+        # Find the start of JSON data (first '{')
+        json_start = data_str.find('{')
+        if json_start == -1:
+            raise ValueError("No JSON object found in data")
+            
+        # Extract just the JSON portion
+        json_str = data_str[json_start:]
         
         # Parse JSON data
-        sensor_data = json.loads(payload)
+        sensor_data = json.loads(json_str)
         
         # Print formatted sensor readings
         print("Sensor Readings:")
@@ -54,8 +61,9 @@ def parse_sensor_data(data):
         print(f"Y: {sensor_data['y']:.4f}")
         print(f"Z: {sensor_data['z']:.4f}")
         
-    except json.JSONDecodeError:
-        print("Error: Could not parse JSON data")
+    except json.JSONDecodeError as e:
+        print(f"Error: Could not parse JSON data: {e}")
+        print(f"Raw data: {data_str}")
     except Exception as e:
         print(f"Error processing data: {e}")
 
