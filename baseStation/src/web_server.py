@@ -1,148 +1,119 @@
 from fastapi import FastAPI, WebSocket
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 import json
-import asyncio
 from datetime import datetime
-import uvicorn
-from pathlib import Path
 
 app = FastAPI()
+
+# Enable CORS for all origins
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Store the latest sensor data
 latest_data = {}
 
-# HTML template for the web interface
+# Simplified HTML template
 html = """
 <!DOCTYPE html>
 <html>
     <head>
-        <title>BNO055 Sensor Monitor</title>
+        <title>Sensor Monitor</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-            .card {
-                border: 1px solid #ccc;
-                padding: 15px;
-                border-radius: 8px;
-                background: #f8f9fa;
+            body { 
+                font-family: Arial; 
+                margin: 20px;
+                background: #f0f0f0;
             }
-            .value { font-size: 1.2em; font-weight: bold; }
-            .timestamp { color: #666; font-size: 0.8em; }
-            table { width: 100%; border-collapse: collapse; }
-            td { padding: 4px; }
-            .cal-0 { background: #ffcdd2; }
-            .cal-1 { background: #fff9c4; }
-            .cal-2 { background: #c8e6c9; }
-            .cal-3 { background: #69f0ae; }
+            .container { 
+                max-width: 800px;
+                margin: 0 auto;
+            }
+            .card {
+                background: white;
+                border-radius: 8px;
+                padding: 15px;
+                margin-bottom: 15px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .value {
+                font-weight: bold;
+                color: #2196F3;
+            }
+            .timestamp {
+                color: #666;
+                font-size: 0.9em;
+                margin-bottom: 20px;
+            }
+            h2 {
+                margin-top: 0;
+                color: #333;
+            }
         </style>
     </head>
     <body>
-        <h1>BNO055 Sensor Monitor</h1>
-        <div class="timestamp">Last Update: <span id="timestamp">-</span></div>
         <div class="container">
+            <h1>Sensor Monitor</h1>
+            <div class="timestamp">Last Update: <span id="timestamp">-</span></div>
+            
             <div class="card">
-                <h3>Orientation (deg)</h3>
-                <table>
-                    <tr><td>X:</td><td id="orientation_x" class="value">-</td></tr>
-                    <tr><td>Y:</td><td id="orientation_y" class="value">-</td></tr>
-                    <tr><td>Z:</td><td id="orientation_z" class="value">-</td></tr>
-                </table>
+                <h2>Orientation</h2>
+                <div>X: <span id="orientation_x" class="value">-</span>°</div>
+                <div>Y: <span id="orientation_y" class="value">-</span>°</div>
+                <div>Z: <span id="orientation_z" class="value">-</span>°</div>
             </div>
+
             <div class="card">
-                <h3>Accelerometer (m/s²)</h3>
-                <table>
-                    <tr><td>X:</td><td id="accel_x" class="value">-</td></tr>
-                    <tr><td>Y:</td><td id="accel_y" class="value">-</td></tr>
-                    <tr><td>Z:</td><td id="accel_z" class="value">-</td></tr>
-                </table>
+                <h2>Accelerometer</h2>
+                <div>X: <span id="accel_x" class="value">-</span> m/s²</div>
+                <div>Y: <span id="accel_y" class="value">-</span> m/s²</div>
+                <div>Z: <span id="accel_z" class="value">-</span> m/s²</div>
             </div>
+
             <div class="card">
-                <h3>Gyroscope (rad/s)</h3>
-                <table>
-                    <tr><td>X:</td><td id="gyro_x" class="value">-</td></tr>
-                    <tr><td>Y:</td><td id="gyro_y" class="value">-</td></tr>
-                    <tr><td>Z:</td><td id="gyro_z" class="value">-</td></tr>
-                </table>
-            </div>
-            <div class="card">
-                <h3>Linear Acceleration (m/s²)</h3>
-                <table>
-                    <tr><td>X:</td><td id="linear_x" class="value">-</td></tr>
-                    <tr><td>Y:</td><td id="linear_y" class="value">-</td></tr>
-                    <tr><td>Z:</td><td id="linear_z" class="value">-</td></tr>
-                </table>
-            </div>
-            <div class="card">
-                <h3>Magnetometer (µT)</h3>
-                <table>
-                    <tr><td>X:</td><td id="mag_x" class="value">-</td></tr>
-                    <tr><td>Y:</td><td id="mag_y" class="value">-</td></tr>
-                    <tr><td>Z:</td><td id="mag_z" class="value">-</td></tr>
-                </table>
-            </div>
-            <div class="card">
-                <h3>Gravity (m/s²)</h3>
-                <table>
-                    <tr><td>X:</td><td id="gravity_x" class="value">-</td></tr>
-                    <tr><td>Y:</td><td id="gravity_y" class="value">-</td></tr>
-                    <tr><td>Z:</td><td id="gravity_z" class="value">-</td></tr>
-                </table>
-            </div>
-            <div class="card">
-                <h3>System Status</h3>
-                <table>
-                    <tr><td>Temperature:</td><td id="temp" class="value">-</td></tr>
-                    <tr><td>RSSI:</td><td id="rssi" class="value">-</td></tr>
-                </table>
-            </div>
-            <div class="card">
-                <h3>Calibration Status</h3>
-                <table>
-                    <tr><td>System:</td><td id="cal_sys" class="value">-</td></tr>
-                    <tr><td>Gyro:</td><td id="cal_gyro" class="value">-</td></tr>
-                    <tr><td>Accel:</td><td id="cal_accel" class="value">-</td></tr>
-                    <tr><td>Mag:</td><td id="cal_mag" class="value">-</td></tr>
-                </table>
+                <h2>System Status</h2>
+                <div>RSSI: <span id="rssi" class="value">-</span></div>
+                <div>Calibration: <span id="cal_sys" class="value">-</span></div>
             </div>
         </div>
+
         <script>
-            const ws = new WebSocket("ws://" + window.location.host + "/ws");
-            
-            ws.onmessage = function(event) {
-                const data = JSON.parse(event.data);
-                document.getElementById("timestamp").textContent = new Date().toLocaleTimeString();
-                
-                // Update all values
-                updateVector("orientation", data.orientation);
-                updateVector("accel", data.accel);
-                updateVector("gyro", data.gyro);
-                updateVector("linear", data.linear_accel);
-                updateVector("mag", data.mag);
-                updateVector("gravity", data.gravity);
-                
-                // Update temperature and calibration
-                document.getElementById("temp").textContent = data.temp + "°C";
-                document.getElementById("rssi").textContent = data.rssi || "-";
-                
-                updateCalibration("cal_sys", data.cal.sys);
-                updateCalibration("cal_gyro", data.cal.gyro);
-                updateCalibration("cal_accel", data.cal.accel);
-                updateCalibration("cal_mag", data.cal.mag);
-            };
-            
-            function updateVector(prefix, vector) {
-                if (vector) {
-                    document.getElementById(prefix + "_x").textContent = vector.x.toFixed(3);
-                    document.getElementById(prefix + "_y").textContent = vector.y.toFixed(3);
-                    document.getElementById(prefix + "_z").textContent = vector.z.toFixed(3);
-                }
+            function updateData() {
+                fetch('/data')
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById("timestamp").textContent = new Date().toLocaleTimeString();
+                        
+                        // Update orientation
+                        if (data.orientation) {
+                            document.getElementById("orientation_x").textContent = data.orientation.x.toFixed(2);
+                            document.getElementById("orientation_y").textContent = data.orientation.y.toFixed(2);
+                            document.getElementById("orientation_z").textContent = data.orientation.z.toFixed(2);
+                        }
+                        
+                        // Update accelerometer
+                        if (data.accel) {
+                            document.getElementById("accel_x").textContent = data.accel.x.toFixed(2);
+                            document.getElementById("accel_y").textContent = data.accel.y.toFixed(2);
+                            document.getElementById("accel_z").textContent = data.accel.z.toFixed(2);
+                        }
+                        
+                        // Update status
+                        document.getElementById("rssi").textContent = data.rssi || "-";
+                        document.getElementById("cal_sys").textContent = data.cal ? data.cal.sys : "-";
+                    })
+                    .catch(console.error);
             }
-            
-            function updateCalibration(id, value) {
-                const element = document.getElementById(id);
-                element.textContent = value;
-                element.className = "value cal-" + value;
-            }
+
+            // Update every second
+            setInterval(updateData, 1000);
+            updateData();  // Initial update
         </script>
     </body>
 </html>
@@ -152,21 +123,16 @@ html = """
 async def get():
     return HTMLResponse(html)
 
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()
-    try:
-        while True:
-            if latest_data:
-                await websocket.send_json(latest_data)
-            await asyncio.sleep(0.1)  # Send updates every 100ms
-    except:
-        await websocket.close()
+@app.get("/data")
+async def get_data():
+    return JSONResponse(latest_data)
 
-def update_data(data):
-    """Update the latest sensor data"""
+@app.post("/update")
+async def update_data(data: dict):
     global latest_data
     latest_data = data
+    return {"status": "ok"}
 
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000) 
+def run():
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

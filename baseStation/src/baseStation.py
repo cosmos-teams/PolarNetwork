@@ -112,8 +112,8 @@ def parse_sensor_data(data):
         
         # Send to web server
         try:
-            requests.post('http://localhost:8000/update', json=sensor_data)
-        except:
+            requests.post('http://localhost:8000/update', json=sensor_data, timeout=0.1)
+        except requests.exceptions.RequestException:
             pass  # Ignore if web server is not running
         
     except json.JSONDecodeError as e:
