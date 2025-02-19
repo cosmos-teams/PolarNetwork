@@ -6,7 +6,7 @@ import time
 
 # Open serial port
 ser = serial.Serial(
-    port='/dev/ttyS0',
+    port='/dev/ttyACM0',
     baudrate=9600,
     bytesize=serial.EIGHTBITS,
     parity=serial.PARITY_NONE,
