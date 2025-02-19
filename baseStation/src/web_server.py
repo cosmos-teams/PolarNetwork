@@ -64,23 +64,13 @@ html = """
             <div class="timestamp">Last Update: <span id="timestamp">-</span></div>
             
             <div class="card">
-                <h2>Orientation</h2>
-                <div>X: <span id="orientation_x" class="value">-</span>°</div>
-                <div>Y: <span id="orientation_y" class="value">-</span>°</div>
-                <div>Z: <span id="orientation_z" class="value">-</span>°</div>
+                <h2>Linear Acceleration Graph</h2>
+                <canvas id="linearAccelChart"></canvas>
             </div>
 
             <div class="card">
-                <h2>Accelerometer</h2>
-                <div>X: <span id="accel_x" class="value">-</span> m/s²</div>
-                <div>Y: <span id="accel_y" class="value">-</span> m/s²</div>
-                <div>Z: <span id="accel_z" class="value">-</span> m/s²</div>
-            </div>
-
-            <div class="card">
-                <h2>System Status</h2>
-                <div>RSSI: <span id="rssi" class="value">-</span></div>
-                <div>Calibration: <span id="cal_sys" class="value">-</span></div>
+                <h2>Temperature</h2>
+                <div>Temperature: <span id="temperature" class="value">-</span>°C</div>
             </div>
 
             <div class="card">
@@ -91,9 +81,25 @@ html = """
             </div>
 
             <div class="card">
-                <h2>Linear Acceleration Graph</h2>
-                <canvas id="linearAccelChart"></canvas>
+                <h2>Accelerometer</h2>
+                <div>X: <span id="accel_x" class="value">-</span> m/s²</div>
+                <div>Y: <span id="accel_y" class="value">-</span> m/s²</div>
+                <div>Z: <span id="accel_z" class="value">-</span> m/s²</div>
             </div>
+
+            <div class="card">
+                <h2>Orientation</h2>
+                <div>X: <span id="orientation_x" class="value">-</span>°</div>
+                <div>Y: <span id="orientation_y" class="value">-</span>°</div>
+                <div>Z: <span id="orientation_z" class="value">-</span>°</div>
+            </div>
+
+            <div class="card">
+                <h2>System Status</h2>
+                <div>RSSI: <span id="rssi" class="value">-</span></div>
+                <div>Calibration: <span id="cal_sys" class="value">-</span></div>
+            </div>
+            
         </div>
 
         <script>
@@ -148,6 +154,11 @@ html = """
                     .then(data => {
                         const timestamp = new Date().toLocaleTimeString();
                         document.getElementById("timestamp").textContent = timestamp;
+                        
+                        // Update temperature
+                        if (data.temp !== undefined) {
+                            document.getElementById("temperature").textContent = data.temp.toFixed(1);
+                        }
                         
                         // Update orientation
                         if (data.orientation) {
