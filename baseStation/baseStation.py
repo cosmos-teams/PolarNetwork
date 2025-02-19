@@ -5,6 +5,70 @@ import sx126x
 import json
 import time
 import sys
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+import datetime
+import csv
+import os
+
+# Data storage for plotting
+class DataBuffer:
+    def __init__(self, max_points=100):
+        self.max_points = max_points
+        self.times = []
+        self.x_vals = []
+        self.y_vals = []
+        self.z_vals = []
+        
+        # Initialize plot
+        plt.ion()  # Enable interactive mode
+        self.fig, self.ax = plt.subplots(figsize=(10, 6))
+        self.lines = [
+            self.ax.plot([], [], label='X')[0],
+            self.ax.plot([], [], label='Y')[0],
+            self.ax.plot([], [], label='Z')[0]
+        ]
+        self.ax.set_title('Orientation Data')
+        self.ax.set_xlabel('Time')
+        self.ax.set_ylabel('Degrees')
+        self.ax.legend()
+        self.ax.grid(True)
+
+    def update(self, x, y, z):
+        current_time = datetime.datetime.now()
+        self.times.append(current_time)
+        self.x_vals.append(x)
+        self.y_vals.append(y)
+        self.z_vals.append(z)
+        
+        # Keep only max_points
+        if len(self.times) > self.max_points:
+            self.times = self.times[-self.max_points:]
+            self.x_vals = self.x_vals[-self.max_points:]
+            self.y_vals = self.y_vals[-self.max_points:]
+            self.z_vals = self.z_vals[-self.max_points:]
+        
+        # Update plot
+        time_numbers = [(t - self.times[0]).total_seconds() for t in self.times]
+        self.lines[0].set_data(time_numbers, self.x_vals)
+        self.lines[1].set_data(time_numbers, self.y_vals)
+        self.lines[2].set_data(time_numbers, self.z_vals)
+        
+        self.ax.relim()
+        self.ax.autoscale_view()
+        self.fig.canvas.draw()
+        self.fig.canvas.flush_events()
+
+# Initialize data buffer and CSV logging
+data_buffer = DataBuffer()
+log_filename = f"sensor_data_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+os.makedirs('logs', exist_ok=True)
+log_path = os.path.join('logs', log_filename)
+
+# Create CSV file with headers
+with open(log_path, 'w', newline='') as f:
+    writer = csv.writer(f)
+    writer.writerow(['Timestamp', 'X', 'Y', 'Z', 'RSSI'])
 
 # Initialize LoRa module with error handling
 try:
@@ -55,11 +119,22 @@ def parse_sensor_data(data):
         # Parse JSON data
         sensor_data = json.loads(json_str)
         
+        # Update plot and log data
+        x, y, z = sensor_data['x'], sensor_data['y'], sensor_data['z']
+        data_buffer.update(x, y, z)
+        
+        # Log to CSV
+        timestamp = datetime.datetime.now().isoformat()
+        rssi = f"-{256-data[-1:][0]}dBm" if node.rssi else "N/A"
+        with open(log_path, 'a', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow([timestamp, x, y, z, rssi])
+        
         # Print formatted sensor readings
         print("Sensor Readings:")
-        print(f"X: {sensor_data['x']:.4f}")
-        print(f"Y: {sensor_data['y']:.4f}")
-        print(f"Z: {sensor_data['z']:.4f}")
+        print(f"X: {x:.4f}")
+        print(f"Y: {y:.4f}")
+        print(f"Z: {z:.4f}")
         
     except json.JSONDecodeError as e:
         print(f"Error: Could not parse JSON data: {e}")
