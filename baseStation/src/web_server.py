@@ -84,32 +84,39 @@ html = """
             </div>
 
             <div class="card">
-                <h2>Acceleration Graph</h2>
-                <canvas id="accelChart"></canvas>
+                <h2>Linear Acceleration</h2>
+                <div>X: <span id="linear_accel_x" class="value">-</span> m/s²</div>
+                <div>Y: <span id="linear_accel_y" class="value">-</span> m/s²</div>
+                <div>Z: <span id="linear_accel_z" class="value">-</span> m/s²</div>
+            </div>
+
+            <div class="card">
+                <h2>Linear Acceleration Graph</h2>
+                <canvas id="linearAccelChart"></canvas>
             </div>
         </div>
 
         <script>
             // Initialize the chart
-            const ctx = document.getElementById('accelChart').getContext('2d');
-            const maxDataPoints = 50;  // Number of points to show on graph
+            const ctx = document.getElementById('linearAccelChart').getContext('2d');
+            const maxDataPoints = 50;
             
-            const accelChart = new Chart(ctx, {
+            const linearAccelChart = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: [],
                     datasets: [{
-                        label: 'X Acceleration',
+                        label: 'X Linear Acceleration',
                         data: [],
                         borderColor: 'rgb(255, 99, 132)',
                         tension: 0.1
                     }, {
-                        label: 'Y Acceleration',
+                        label: 'Y Linear Acceleration',
                         data: [],
                         borderColor: 'rgb(75, 192, 192)',
                         tension: 0.1
                     }, {
-                        label: 'Z Acceleration',
+                        label: 'Z Linear Acceleration',
                         data: [],
                         borderColor: 'rgb(153, 102, 255)',
                         tension: 0.1
@@ -122,7 +129,7 @@ html = """
                             beginAtZero: false,
                             title: {
                                 display: true,
-                                text: 'Acceleration (m/s²)'
+                                text: 'Linear Acceleration (m/s²)'
                             }
                         },
                         x: {
@@ -154,25 +161,32 @@ html = """
                             document.getElementById("accel_x").textContent = data.accel.x.toFixed(2);
                             document.getElementById("accel_y").textContent = data.accel.y.toFixed(2);
                             document.getElementById("accel_z").textContent = data.accel.z.toFixed(2);
-
-                            // Update chart
-                            accelChart.data.labels.push(timestamp);
-                            accelChart.data.datasets[0].data.push(data.accel.x);
-                            accelChart.data.datasets[1].data.push(data.accel.y);
-                            accelChart.data.datasets[2].data.push(data.accel.z);
-
-                            // Remove old data points if we have too many
-                            if (accelChart.data.labels.length > maxDataPoints) {
-                                accelChart.data.labels.shift();
-                                accelChart.data.datasets.forEach(dataset => dataset.data.shift());
-                            }
-
-                            accelChart.update();
                         }
                         
                         // Update status
                         document.getElementById("rssi").textContent = data.rssi || "-";
                         document.getElementById("cal_sys").textContent = data.cal ? data.cal.sys : "-";
+
+                        // Update linear acceleration values
+                        if (data.linear_accel) {
+                            document.getElementById("linear_accel_x").textContent = data.linear_accel.x.toFixed(2);
+                            document.getElementById("linear_accel_y").textContent = data.linear_accel.y.toFixed(2);
+                            document.getElementById("linear_accel_z").textContent = data.linear_accel.z.toFixed(2);
+
+                            // Update chart
+                            linearAccelChart.data.labels.push(timestamp);
+                            linearAccelChart.data.datasets[0].data.push(data.linear_accel.x);
+                            linearAccelChart.data.datasets[1].data.push(data.linear_accel.y);
+                            linearAccelChart.data.datasets[2].data.push(data.linear_accel.z);
+
+                            // Remove old data points if we have too many
+                            if (linearAccelChart.data.labels.length > maxDataPoints) {
+                                linearAccelChart.data.labels.shift();
+                                linearAccelChart.data.datasets.forEach(dataset => dataset.data.shift());
+                            }
+
+                            linearAccelChart.update();
+                        }
                     })
                     .catch(console.error);
             }
