@@ -2,6 +2,7 @@ import serial
 import time
 import os
 import stat
+import json
 
 def check_port_access(port_path):
     try:
@@ -61,6 +62,33 @@ def test_serial_port():
     except Exception as e:
         print(f"Error: {str(e)}")
         print(f"Error type: {type(e).__name__}")
+
+def parse_sensor_data(data):
+    try:
+        # Convert bytes to string
+        data_str = data[3:-1].decode('utf-8')
+        
+        # Remove "Sent: " prefix if present
+        if data_str.startswith("Sent: "):
+            data_str = data_str.replace("Sent: ", "")
+        
+        # Remove any trailing whitespace or newlines
+        data_str = data_str.strip()
+        
+        # Parse JSON data
+        sensor_data = json.loads(data_str)
+        
+        # Print formatted sensor readings
+        print("Sensor Readings:")
+        print(f"X: {sensor_data['x']:.4f}")
+        print(f"Y: {sensor_data['y']:.4f}")
+        print(f"Z: {sensor_data['z']:.4f}")
+        
+    except json.JSONDecodeError as e:
+        print(f"Error: Could not parse JSON data: {e}")
+        print(f"Raw data: {data_str}")
+    except Exception as e:
+        print(f"Error processing data: {e}")
 
 if __name__ == "__main__":
     test_serial_port()

@@ -53,8 +53,5 @@ void loop(void)
   // Send data over LoRa
   sendLoRaPacket(data);
   
-  // Debug print
-  Serial.println("Sent: " + data);
-  
-  delay(100);
+  delay(1000);
 }
