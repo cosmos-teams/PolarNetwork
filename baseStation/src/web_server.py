@@ -25,6 +25,7 @@ html = """
     <head>
         <title>Sensor Monitor</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <style>
             body { 
                 font-family: Arial; 
@@ -81,14 +82,65 @@ html = """
                 <div>RSSI: <span id="rssi" class="value">-</span></div>
                 <div>Calibration: <span id="cal_sys" class="value">-</span></div>
             </div>
+
+            <div class="card">
+                <h2>Acceleration Graph</h2>
+                <canvas id="accelChart"></canvas>
+            </div>
         </div>
 
         <script>
+            // Initialize the chart
+            const ctx = document.getElementById('accelChart').getContext('2d');
+            const maxDataPoints = 50;  // Number of points to show on graph
+            
+            const accelChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'X Acceleration',
+                        data: [],
+                        borderColor: 'rgb(255, 99, 132)',
+                        tension: 0.1
+                    }, {
+                        label: 'Y Acceleration',
+                        data: [],
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }, {
+                        label: 'Z Acceleration',
+                        data: [],
+                        borderColor: 'rgb(153, 102, 255)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: 'Acceleration (m/s²)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time'
+                            }
+                        }
+                    }
+                }
+            });
+
             function updateData() {
                 fetch('/data')
                     .then(response => response.json())
                     .then(data => {
-                        document.getElementById("timestamp").textContent = new Date().toLocaleTimeString();
+                        const timestamp = new Date().toLocaleTimeString();
+                        document.getElementById("timestamp").textContent = timestamp;
                         
                         // Update orientation
                         if (data.orientation) {
@@ -102,6 +154,20 @@ html = """
                             document.getElementById("accel_x").textContent = data.accel.x.toFixed(2);
                             document.getElementById("accel_y").textContent = data.accel.y.toFixed(2);
                             document.getElementById("accel_z").textContent = data.accel.z.toFixed(2);
+
+                            // Update chart
+                            accelChart.data.labels.push(timestamp);
+                            accelChart.data.datasets[0].data.push(data.accel.x);
+                            accelChart.data.datasets[1].data.push(data.accel.y);
+                            accelChart.data.datasets[2].data.push(data.accel.z);
+
+                            // Remove old data points if we have too many
+                            if (accelChart.data.labels.length > maxDataPoints) {
+                                accelChart.data.labels.shift();
+                                accelChart.data.datasets.forEach(dataset => dataset.data.shift());
+                            }
+
+                            accelChart.update();
                         }
                         
                         // Update status
