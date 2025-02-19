@@ -43,15 +43,70 @@ void setup(void)
 }
 
 void sendLoRaPacket(String data) {
-  // Format: [sender][recipient][length][data]
-  LORA_SERIAL.write(nodeID);          // Sender ID
-  LORA_SERIAL.write(baseStation);     // Recipient ID
-  LORA_SERIAL.write(data.length());   // Package length
-  LORA_SERIAL.print(data);            // Data
+  Serial.println("\n--- Sending LoRa packet ---");
+  Serial.printf("Sender ID (nodeID): 0x%02X\n", nodeID);
+  Serial.printf("Recipient ID (baseStation): 0x%02X\n", baseStation);
+  Serial.printf("Data length: %d\n", data.length());
+  Serial.printf("Raw bytes being sent: ");
+  
+  // Print the header bytes
+  Serial.printf("0x%02X 0x%02X 0x%02X ", nodeID, baseStation, data.length());
+  
+  // Print the data bytes
+  for(unsigned int i = 0; i < data.length(); i++) {
+    Serial.printf("0x%02X ", data[i]);
+  }
+  Serial.println();
+  
+  // Send the actual data
+  digitalWrite(LED_PIN, HIGH);  // Visual indicator
+  LORA_SERIAL.write(nodeID);
+  LORA_SERIAL.write(baseStation);
+  LORA_SERIAL.write(data.length());
+  LORA_SERIAL.print(data);
+  delay(100);
+  digitalWrite(LED_PIN, LOW);
+  
+  Serial.println("Packet sent!");
+  Serial.println("------------------------");
+}
+
+void checkIncomingMessages() {
+  while (LORA_SERIAL.available()) {
+    Serial.println("\n--- Received LoRa packet ---");
+    
+    // Read header bytes
+    byte sender = LORA_SERIAL.read();
+    byte recipient = LORA_SERIAL.read();
+    byte length = LORA_SERIAL.read();
+    
+    Serial.printf("Sender ID: 0x%02X\n", sender);
+    Serial.printf("Recipient ID: 0x%02X\n", recipient);
+    Serial.printf("Data length: %d\n", length);
+    
+    // Read payload
+    Serial.print("Data (hex): ");
+    for (int i = 0; i < length; i++) {
+      byte b = LORA_SERIAL.read();
+      Serial.printf("0x%02X ", b);
+    }
+    Serial.println();
+    
+    // Try to print as ASCII
+    LORA_SERIAL.setTimeout(100);  // Reset position to start of payload
+    String message = LORA_SERIAL.readString();
+    Serial.print("Data (ASCII): ");
+    Serial.println(message);
+    
+    Serial.println("------------------------");
+  }
 }
 
 void loop(void) 
 {
+  // Check for incoming messages
+  checkIncomingMessages();
+  
   // Read all sensor data
   sensors_event_t orientationData, angVelocityData, linearAccelData, magnetometerData, 
                  accelerometerData, gravityData;
@@ -105,5 +160,6 @@ void loop(void)
   // Send data over LoRa
   sendLoRaPacket(data);
   
-  delay(1000);  // 1Hz sampling rate
+  // Add small delay to allow receiving
+  delay(100);
 }

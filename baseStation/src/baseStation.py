@@ -141,6 +141,24 @@ def parse_sensor_data(data):
         print("Data dump for debugging:")
         print(f"Full packet: {[hex(x) for x in data]}")
 
+def print_packet_details(data):
+    print("\n=== Received Packet Details ===")
+    print(f"Total packet length: {len(data)} bytes")
+    print("Raw bytes (hex):", ' '.join([f'0x{x:02X}' for x in data]))
+    print("Raw bytes (decimal):", list(data))
+    try:
+        print("As ASCII:", ''.join([chr(x) if 32 <= x <= 126 else '.' for x in data]))
+    except:
+        print("Could not convert to ASCII")
+    print(f"Sender ID: 0x{data[0]:02X} ({data[0]})")
+    print(f"Recipient ID: 0x{data[1]:02X} ({data[1]})")
+    print(f"Package Length: {data[2]}")
+    if len(data) > 3:
+        print("Payload:", data[3:-1])
+        if node.rssi:
+            print(f"RSSI: -{256-data[-1:][0]}dBm")
+    print("=" * 30)
+
 # Start web server in a separate thread
 def run_web_server():
     import web_server
@@ -148,36 +166,33 @@ def run_web_server():
 
 Thread(target=run_web_server, daemon=True).start()
 
+# Main loop
 try:
-    print("LoRa Receiver Started. Press Ctrl+C to exit.")
+    print("\nLoRa Receiver Started")
+    print(f"Listening on /dev/ttyS0 at 9600 baud")
+    print(f"Base Station ID: 0xFF")
+    print(f"Expected Sender ID: 0x02")
+    print("Press Ctrl+C to exit\n")
     
     while True:
-        # Check if there's data available to read
         if node.ser.inWaiting() > 0:
             time.sleep(0.1)  # Wait for complete message
             r_buff = node.ser.read(node.ser.inWaiting())
+            print_packet_details(r_buff)
             
-            # Print packet details
-            print("\nReceived packet:")
-            print(f"Sender ID: 0x{r_buff[0]:02X} ({r_buff[0]})")
-            print(f"Recipient ID: 0x{r_buff[1]:02X} ({r_buff[1]})")
-            print(f"Package Length: {r_buff[2]}")
-            
-            # Parse and display sensor data
-            parse_sensor_data(r_buff)
-            
-            # Print RSSI if enabled
-            if node.rssi:
-                print(f"RSSI: -{256-r_buff[-1:][0]}dBm")
-            
-            print("-" * 40)
+            try:
+                parse_sensor_data(r_buff)
+            except Exception as e:
+                print(f"Error parsing data: {e}")
         
-        time.sleep(0.1)  # Small delay to prevent CPU overload
+        time.sleep(0.1)
 
 except KeyboardInterrupt:
     print("\nExiting...")
 except Exception as e:
     print(f"An error occurred: {e}")
+    import traceback
+    traceback.print_exc()
 finally:
     # Clean up GPIO (if needed)
     node.ser.close()
