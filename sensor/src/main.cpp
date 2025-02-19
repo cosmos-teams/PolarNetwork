@@ -15,8 +15,9 @@
 Adafruit_BNO055 bno = Adafruit_BNO055(55);
 
 // LoRa parameters
-const byte nodeID = 0x02;      // This device's ID
-const byte baseStation = 0xFF;  // Destination ID (base station)
+const uint16_t nodeID = 0;     // Address 0
+const uint16_t freq = 433;     // 433MHz (matching the example)
+const uint8_t power = 22;      // 22dBm
 
 void setup(void) 
 {
@@ -42,33 +43,25 @@ void setup(void)
   bno.setExtCrystalUse(true);
 }
 
-void sendLoRaPacket(String data) {
-  Serial.println("\n--- Sending LoRa packet ---");
-  Serial.printf("Sender ID (nodeID): 0x%02X\n", nodeID);
-  Serial.printf("Recipient ID (baseStation): 0x%02X\n", baseStation);
-  Serial.printf("Data length: %d\n", data.length());
-  Serial.printf("Raw bytes being sent: ");
-  
-  // Print the header bytes
-  Serial.printf("0x%02X 0x%02X 0x%02X ", nodeID, baseStation, data.length());
-  
-  // Print the data bytes
-  for(unsigned int i = 0; i < data.length(); i++) {
-    Serial.printf("0x%02X ", data[i]);
-  }
-  Serial.println();
-  
-  // Send the actual data
-  digitalWrite(LED_PIN, HIGH);  // Visual indicator
-  LORA_SERIAL.write(nodeID);
-  LORA_SERIAL.write(baseStation);
-  LORA_SERIAL.write(data.length());
-  LORA_SERIAL.print(data);
-  delay(100);
-  digitalWrite(LED_PIN, LOW);
-  
-  Serial.println("Packet sent!");
-  Serial.println("------------------------");
+void sendMessage(const char* msg) {
+    // Calculate frequency offset for 433MHz
+    uint8_t offset_frequence = freq - 410;  // For 433MHz band
+    
+    digitalWrite(LED_PIN, HIGH);
+    
+    // Format matching the example:
+    // [dest_addr_high][dest_addr_low][freq_offset][own_addr_high][own_addr_low][own_freq_offset][payload]
+    LORA_SERIAL.write(0xFF);  // Destination high byte (255)
+    LORA_SERIAL.write(0xFF);  // Destination low byte (255)
+    LORA_SERIAL.write(offset_frequence);
+    LORA_SERIAL.write(nodeID >> 8);    // Own address high byte
+    LORA_SERIAL.write(nodeID & 0xFF);  // Own address low byte
+    LORA_SERIAL.write(offset_frequence);
+    LORA_SERIAL.print(msg);
+    
+    
+    delay(100);
+    digitalWrite(LED_PIN, LOW);
 }
 
 void checkIncomingMessages() {
@@ -158,7 +151,7 @@ void loop(void)
                 ",\"mag\":" + String(mag) + "}}";
   
   // Send data over LoRa
-  sendLoRaPacket(data);
+  sendMessage(data.c_str());
   
   // Add small delay to allow receiving
   delay(100);

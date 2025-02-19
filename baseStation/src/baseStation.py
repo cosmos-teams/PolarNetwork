@@ -33,15 +33,15 @@ with open(log_path, 'w', newline='') as f:
 try:
     node = sx126x.sx126x(
         serial_num="/dev/ttyS0",
-        freq=868,
-        addr=0xFF,  # Base station address (255)
+        freq=433,
+        addr=0,
         power=22,
         rssi=True,
         air_speed=2400,
         relay=False
     )
     
-    print(f"Base station initialized with address: 0xFF")
+    print(f"Base station initialized with address: 0x00")
     print(f"Listening for messages from node ID: 0x02")
     
     # Verify the serial connection
@@ -170,7 +170,7 @@ Thread(target=run_web_server, daemon=True).start()
 try:
     print("\nLoRa Receiver Started")
     print(f"Listening on /dev/ttyS0 at 9600 baud")
-    print(f"Base Station ID: 0xFF")
+    print(f"Base Station ID: 0x00")
     print(f"Expected Sender ID: 0x02")
     print("Press Ctrl+C to exit\n")
     
