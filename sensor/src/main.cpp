@@ -6,8 +6,11 @@
 
 // Define UART for AS32 module - using default UART0
 #define LORA_SERIAL Serial1
-#define LORA_TX_PIN 0  // GP0 - UART0 TX
-#define LORA_RX_PIN 1  // GP1 - UART0 RX
+#define LORA_TX_PIN 0    // GP0 - UART0 TX
+#define LORA_RX_PIN 1    // GP1 - UART0 RX
+#define LORA_M0_PIN 2    // GPIO pin for M0
+#define LORA_M1_PIN 3    // GPIO pin for M1
+#define LED_PIN 25       // Built-in LED on Pico
 
 Adafruit_BNO055 bno = Adafruit_BNO055(55);
 
@@ -17,6 +20,14 @@ const byte baseStation = 0xFF;  // Destination ID (base station)
 
 void setup(void) 
 {
+  pinMode(LORA_M0_PIN, OUTPUT);
+  pinMode(LORA_M1_PIN, OUTPUT);
+  
+  // Set to normal mode: M0=0, M1=0
+  digitalWrite(LORA_M0_PIN, LOW);
+  digitalWrite(LORA_M1_PIN, LOW);
+  
+  pinMode(LED_PIN, OUTPUT);
   Serial.begin(9600);
   LORA_SERIAL.begin(9600);
   

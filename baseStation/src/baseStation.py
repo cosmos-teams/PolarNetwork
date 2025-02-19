@@ -34,11 +34,15 @@ try:
     node = sx126x.sx126x(
         serial_num="/dev/ttyS0",
         freq=868,
-        addr=0xFF,
+        addr=0xFF,  # Base station address (255)
         power=22,
         rssi=True,
-        air_speed=2400
+        air_speed=2400,
+        relay=False
     )
+    
+    print(f"Base station initialized with address: 0xFF")
+    print(f"Listening for messages from node ID: 0x02")
     
     # Verify the serial connection
     if not node.ser.is_open:
