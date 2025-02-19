@@ -67,6 +67,11 @@ def parse_sensor_data(data):
         # Print raw bytes for debugging
         print("Raw data bytes:", [hex(x) for x in data])
         
+        # Check for command packets (usually start with 0xC1)
+        if data[0] == 0xC1:
+            print("Received command/config packet from LoRa module")
+            return
+            
         # Skip the first 3 bytes (sender, recipient, length)
         payload = data[3:-1]  # Exclude RSSI byte at the end
         
@@ -76,14 +81,16 @@ def parse_sensor_data(data):
             json_start = data_str.find('{')
             if json_start != -1:
                 json_str = data_str[json_start:]
+                print(f"Received JSON data: {json_str}")
                 sensor_data = json.loads(json_str)
                 
-                # Add RSSI to sensor data
+                # Add timestamp and RSSI
+                sensor_data['timestamp'] = datetime.datetime.now().isoformat()
                 sensor_data['rssi'] = f"-{256-data[-1:][0]}dBm" if node.rssi else "N/A"
                 
                 # Log to CSV
                 csv_data = [
-                    datetime.datetime.now().isoformat(),
+                    sensor_data['timestamp'],
                     # Orientation
                     sensor_data['orientation']['x'],
                     sensor_data['orientation']['y'],
@@ -120,12 +127,10 @@ def parse_sensor_data(data):
                     pass
                 
             else:
-                print("Received non-JSON data:", payload)
+                print("Received non-JSON data:", data_str)
                 
         except UnicodeDecodeError:
-            # If not UTF-8, treat as binary data
-            print("Received binary data:", payload)
-            # Add your binary data handling here if needed
+            print("Received binary data:", [hex(x) for x in payload])
             
     except Exception as e:
         print(f"Error processing data: {e}")
@@ -148,10 +153,10 @@ try:
             time.sleep(0.1)  # Wait for complete message
             r_buff = node.ser.read(node.ser.inWaiting())
             
-            # Print raw data for debugging
+            # Print packet details
             print("\nReceived packet:")
-            print(f"Sender ID: {r_buff[0]}")
-            print(f"Recipient ID: {r_buff[1]}")
+            print(f"Sender ID: 0x{r_buff[0]:02X} ({r_buff[0]})")
+            print(f"Recipient ID: 0x{r_buff[1]:02X} ({r_buff[1]})")
             print(f"Package Length: {r_buff[2]}")
             
             # Parse and display sensor data
