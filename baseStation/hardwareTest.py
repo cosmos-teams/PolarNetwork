@@ -22,7 +22,7 @@ def check_port_access(port_path):
         return False
 
 def test_serial_port():
-    port_path = '/dev/ttyAMA0'
+    port_path = '/dev/ttyACM0'
     
     print("\n--- Port Access Check ---")
     if not check_port_access(port_path):
