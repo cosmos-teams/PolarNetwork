@@ -15,10 +15,10 @@ Type=simple
 User=$USER
 Group=$USER
 Environment="PATH=$VENV_PATH/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-Environment="PYTHONPATH=$VENV_PATH/lib/python3.*/site-packages"
+Environment="PYTHONPATH=$VENV_PATH/lib/python3.*/site-packages:$SCRIPT_DIR"
 Environment="PYTHONUNBUFFERED=1"
-WorkingDirectory=$SCRIPT_DIR
-ExecStart=$VENV_PATH/bin/python3 $SCRIPT_DIR/baseStation.py
+WorkingDirectory=$SCRIPT_DIR/src
+ExecStart=$VENV_PATH/bin/python3 $SCRIPT_DIR/src/baseStation.py
 Restart=always
 RestartSec=5
 StandardOutput=append:/var/log/bno055-monitor.log
@@ -52,6 +52,7 @@ sudo systemctl status bno055-monitor.service
 
 # Print the paths for verification
 echo "Script directory: $SCRIPT_DIR"
+echo "Working directory: $SCRIPT_DIR/src"
 echo "Virtual environment: $VENV_PATH"
 echo "Log files:"
 echo "  - /var/log/bno055-monitor.log"
