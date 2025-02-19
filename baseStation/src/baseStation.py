@@ -64,62 +64,73 @@ except Exception as e:
 
 def parse_sensor_data(data):
     try:
-        data_str = data[3:-1].decode('utf-8')
-        json_start = data_str.find('{')
-        if json_start == -1:
-            raise ValueError("No JSON object found in data")
-            
-        json_str = data_str[json_start:]
-        sensor_data = json.loads(json_str)
+        # Print raw bytes for debugging
+        print("Raw data bytes:", [hex(x) for x in data])
         
-        # Add RSSI to sensor data
-        sensor_data['rssi'] = f"-{256-data[-1:][0]}dBm" if node.rssi else "N/A"
+        # Skip the first 3 bytes (sender, recipient, length)
+        payload = data[3:-1]  # Exclude RSSI byte at the end
         
-        # Get current timestamp
-        timestamp = datetime.datetime.now().isoformat()
-        
-        # Log to CSV
-        csv_data = [
-            timestamp,
-            # Orientation
-            sensor_data['orientation']['x'],
-            sensor_data['orientation']['y'],
-            sensor_data['orientation']['z'],
-            # Gyroscope
-            sensor_data['gyro']['x'],
-            sensor_data['gyro']['y'],
-            sensor_data['gyro']['z'],
-            # Accelerometer
-            sensor_data['accel']['x'],
-            sensor_data['accel']['y'],
-            sensor_data['accel']['z'],
-            # Magnetometer
-            sensor_data['mag']['x'],
-            sensor_data['mag']['y'],
-            sensor_data['mag']['z'],
-            # Calibration
-            sensor_data['cal']['sys'],
-            sensor_data['cal']['gyro'],
-            sensor_data['cal']['accel'],
-            sensor_data['cal']['mag'],
-            # RSSI
-            sensor_data['rssi']
-        ]
-        
-        with open(log_path, 'a', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow(csv_data)
-        
-        # Send to web server
         try:
-            requests.post('http://localhost:8000/update', json=sensor_data, timeout=0.1)
-        except requests.exceptions.RequestException:
-            pass  # Ignore if web server is not running
-        
-    except json.JSONDecodeError as e:
-        print(f"Error: Could not parse JSON data: {e}")
+            # Try to decode as JSON
+            data_str = payload.decode('utf-8')
+            json_start = data_str.find('{')
+            if json_start != -1:
+                json_str = data_str[json_start:]
+                sensor_data = json.loads(json_str)
+                
+                # Add RSSI to sensor data
+                sensor_data['rssi'] = f"-{256-data[-1:][0]}dBm" if node.rssi else "N/A"
+                
+                # Log to CSV
+                csv_data = [
+                    datetime.datetime.now().isoformat(),
+                    # Orientation
+                    sensor_data['orientation']['x'],
+                    sensor_data['orientation']['y'],
+                    sensor_data['orientation']['z'],
+                    # Gyroscope
+                    sensor_data['gyro']['x'],
+                    sensor_data['gyro']['y'],
+                    sensor_data['gyro']['z'],
+                    # Accelerometer
+                    sensor_data['accel']['x'],
+                    sensor_data['accel']['y'],
+                    sensor_data['accel']['z'],
+                    # Magnetometer
+                    sensor_data['mag']['x'],
+                    sensor_data['mag']['y'],
+                    sensor_data['mag']['z'],
+                    # Calibration
+                    sensor_data['cal']['sys'],
+                    sensor_data['cal']['gyro'],
+                    sensor_data['cal']['accel'],
+                    sensor_data['cal']['mag'],
+                    # RSSI
+                    sensor_data['rssi']
+                ]
+                
+                with open(log_path, 'a', newline='') as f:
+                    writer = csv.writer(f)
+                    writer.writerow(csv_data)
+                
+                # Send to web server
+                try:
+                    requests.post('http://localhost:8000/update', json=sensor_data, timeout=0.1)
+                except requests.exceptions.RequestException:
+                    pass
+                
+            else:
+                print("Received non-JSON data:", payload)
+                
+        except UnicodeDecodeError:
+            # If not UTF-8, treat as binary data
+            print("Received binary data:", payload)
+            # Add your binary data handling here if needed
+            
     except Exception as e:
         print(f"Error processing data: {e}")
+        print("Data dump for debugging:")
+        print(f"Full packet: {[hex(x) for x in data]}")
 
 # Start web server in a separate thread
 def run_web_server():
