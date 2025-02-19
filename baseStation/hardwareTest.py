@@ -68,15 +68,16 @@ def parse_sensor_data(data):
         # Convert bytes to string
         data_str = data[3:-1].decode('utf-8')
         
-        # Remove "Sent: " prefix if present
-        if data_str.startswith("Sent: "):
-            data_str = data_str.replace("Sent: ", "")
-        
-        # Remove any trailing whitespace or newlines
-        data_str = data_str.strip()
+        # Find the start of JSON data (first '{')
+        json_start = data_str.find('{')
+        if json_start == -1:
+            raise ValueError("No JSON object found in data")
+            
+        # Extract just the JSON portion
+        json_str = data_str[json_start:]
         
         # Parse JSON data
-        sensor_data = json.loads(data_str)
+        sensor_data = json.loads(json_str)
         
         # Print formatted sensor readings
         print("Sensor Readings:")
