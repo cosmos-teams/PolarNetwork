@@ -68,16 +68,13 @@ except Exception as e:
 
 def parse_sensor_data(data):
     try:
-        # Print raw bytes for debugging
-        print("Raw data bytes:", [hex(x) for x in data])
-        
         # Check for command packets (usually start with 0xC1)
         if data[0] == 0xC1:
             print("Received command/config packet from LoRa module")
             return
             
         # Skip the first 3 bytes (sender, recipient, length)
-        payload = data[3:-1]  # Exclude RSSI byte at the end
+        payload = data
         
         try:
             # Try to decode as JSON
