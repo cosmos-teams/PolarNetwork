@@ -22,9 +22,8 @@ void setup(void)
   
   Serial.println("Orientation Sensor Test");
   
-  if(!bno.begin())
-  {
-    Serial.print("Ooops, no BNO055 detected ... Check your wiring or I2C ADDR!");
+  if(!bno.begin()) {
+    Serial.print("No BNO055 detected!");
     while(1);
   }
   
@@ -42,16 +41,58 @@ void sendLoRaPacket(String data) {
 
 void loop(void) 
 {
-  sensors_event_t event; 
-  bno.getEvent(&event);
+  // Read all sensor data
+  sensors_event_t orientationData, angVelocityData, linearAccelData, magnetometerData, 
+                 accelerometerData, gravityData;
+  
+  bno.getEvent(&orientationData, Adafruit_BNO055::VECTOR_EULER);
+  bno.getEvent(&angVelocityData, Adafruit_BNO055::VECTOR_GYROSCOPE);
+  bno.getEvent(&linearAccelData, Adafruit_BNO055::VECTOR_LINEARACCEL);
+  bno.getEvent(&magnetometerData, Adafruit_BNO055::VECTOR_MAGNETOMETER);
+  bno.getEvent(&accelerometerData, Adafruit_BNO055::VECTOR_ACCELEROMETER);
+  bno.getEvent(&gravityData, Adafruit_BNO055::VECTOR_GRAVITY);
+
+  // Get temperature
+  int8_t temp = bno.getTemp();
+
+  // Get calibration status
+  uint8_t system, gyro, accel, mag = 0;
+  bno.getCalibration(&system, &gyro, &accel, &mag);
   
   // Format data as JSON string
-  String data = "{\"x\":" + String(event.orientation.x, 4) + 
-                ",\"y\":" + String(event.orientation.y, 4) + 
-                ",\"z\":" + String(event.orientation.z, 4) + "}";
+  String data = "{\"orientation\":{" 
+                "\"x\":" + String(orientationData.orientation.x, 4) + 
+                ",\"y\":" + String(orientationData.orientation.y, 4) + 
+                ",\"z\":" + String(orientationData.orientation.z, 4) + "},"
+                "\"gyro\":{" 
+                "\"x\":" + String(angVelocityData.gyro.x, 4) + 
+                ",\"y\":" + String(angVelocityData.gyro.y, 4) + 
+                ",\"z\":" + String(angVelocityData.gyro.z, 4) + "},"
+                "\"accel\":{" 
+                "\"x\":" + String(accelerometerData.acceleration.x, 4) + 
+                ",\"y\":" + String(accelerometerData.acceleration.y, 4) + 
+                ",\"z\":" + String(accelerometerData.acceleration.z, 4) + "},"
+                "\"linear_accel\":{" 
+                "\"x\":" + String(linearAccelData.acceleration.x, 4) + 
+                ",\"y\":" + String(linearAccelData.acceleration.y, 4) + 
+                ",\"z\":" + String(linearAccelData.acceleration.z, 4) + "},"
+                "\"gravity\":{" 
+                "\"x\":" + String(gravityData.acceleration.x, 4) + 
+                ",\"y\":" + String(gravityData.acceleration.y, 4) + 
+                ",\"z\":" + String(gravityData.acceleration.z, 4) + "},"
+                "\"mag\":{" 
+                "\"x\":" + String(magnetometerData.magnetic.x, 4) + 
+                ",\"y\":" + String(magnetometerData.magnetic.y, 4) + 
+                ",\"z\":" + String(magnetometerData.magnetic.z, 4) + "},"
+                "\"temp\":" + String(temp) + ","
+                "\"cal\":{" 
+                "\"sys\":" + String(system) + 
+                ",\"gyro\":" + String(gyro) + 
+                ",\"accel\":" + String(accel) + 
+                ",\"mag\":" + String(mag) + "}}";
   
   // Send data over LoRa
   sendLoRaPacket(data);
   
-  delay(1000);
+  delay(1000);  // 1Hz sampling rate
 }
