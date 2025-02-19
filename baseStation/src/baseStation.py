@@ -32,7 +32,7 @@ with open(log_path, 'w', newline='') as f:
 # Initialize LoRa module with error handling
 try:
     node = sx126x.sx126x(
-        serial_num="/dev/ttyACM0",
+        serial_num="/dev/ttyS0",
         freq=868,
         addr=0xFF,
         power=22,
@@ -57,7 +57,7 @@ try:
 except Exception as e:
     print(f"Failed to initialize LoRa module: {e}")
     print("Please check:")
-    print("1. Serial port permissions (run 'ls -l /dev/ttyACM0')")
+    print("1. Serial port permissions (run 'ls -l /dev/ttyS0')")
     print("2. Hardware connections (M0, M1, TX, RX)")
     print("3. UART configuration in /boot/firmware/config.txt")
     sys.exit(1)
