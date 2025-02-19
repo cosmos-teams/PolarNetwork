@@ -5,14 +5,11 @@ import sx126x
 import json
 import time
 import sys
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
 import datetime
 import csv
 import os
 import requests
 from threading import Thread
-import asyncio
 
 # Initialize data buffer and CSV logging
 log_filename = f"sensor_data_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"

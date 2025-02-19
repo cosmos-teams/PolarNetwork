@@ -2,7 +2,22 @@
 
 # Get absolute paths
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-VENV_PATH=$(which python | rev | cut -d'/' -f3- | rev)
+VENV_PATH="$SCRIPT_DIR/venv"
+
+# Install python3-venv if not already installed
+sudo apt install python3-venv
+
+# Create a virtual environment in the project directory
+python3 -m venv venv
+
+# Activate the virtual environment
+source venv/bin/activate
+
+# Install required packages
+pip install fastapi uvicorn requests RPi.GPIO pyserial
+
+# Save requirements
+pip freeze > requirements.txt
 
 # Create the service file
 sudo tee /etc/systemd/system/bno055-monitor.service << EOF
@@ -52,7 +67,6 @@ sudo systemctl status bno055-monitor.service
 
 # Print the paths for verification
 echo "Script directory: $SCRIPT_DIR"
-echo "Working directory: $SCRIPT_DIR/src"
 echo "Virtual environment: $VENV_PATH"
 echo "Log files:"
 echo "  - /var/log/bno055-monitor.log"
