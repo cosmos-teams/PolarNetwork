@@ -29,12 +29,15 @@ apt-get upgrade -y
 
 # Install required system packages
 print_message "Installing required system packages..." "$YELLOW"
-apt-get install -y python3-pip python3-venv git
+apt-get install -y python3-pip python3-venv git python3-dev
 
 # Create virtual environment
 print_message "Setting up Python virtual environment..." "$YELLOW"
 python3 -m venv "${SCRIPT_DIR}/venv"
 source "${SCRIPT_DIR}/venv/bin/activate"
+
+# Upgrade pip and install wheel
+pip install --upgrade pip wheel
 
 # Install Python requirements
 print_message "Installing Python requirements..." "$YELLOW"
@@ -50,7 +53,8 @@ After=network.target
 [Service]
 Type=simple
 User=$SUDO_USER
-Environment=PYTHONPATH=${SCRIPT_DIR}/venv/lib/python3.9/site-packages
+Environment=PYTHONPATH=${SCRIPT_DIR}
+Environment=PATH=${SCRIPT_DIR}/venv/bin:\$PATH
 WorkingDirectory=${SCRIPT_DIR}/baseStation
 ExecStart=${SCRIPT_DIR}/venv/bin/python3 ${SCRIPT_DIR}/baseStation/src/baseStation.py
 Restart=always
