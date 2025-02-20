@@ -60,30 +60,6 @@ RestartSec=10
 WantedBy=multi-user.target
 EOL
 
-# Create nginx configuration for web interface
-print_message "Setting up nginx configuration..." "$YELLOW"
-apt-get install -y nginx
-
-cat > /etc/nginx/sites-available/lora-monitor << EOL
-server {
-    listen 80;
-    server_name localhost;
-
-    location / {
-        proxy_pass http://localhost:8000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \$host;
-        proxy_cache_bypass \$http_upgrade;
-    }
-}
-EOL
-
-ln -sf /etc/nginx/sites-available/lora-monitor /etc/nginx/sites-enabled/
-rm -f /etc/nginx/sites-enabled/default
-systemctl restart nginx
-
 # Set correct permissions
 print_message "Setting permissions..." "$YELLOW"
 chmod 644 /etc/systemd/system/lora-monitor.service
@@ -107,7 +83,7 @@ if systemctl is-active --quiet lora-monitor.service; then
     print_message "- Check service status: sudo systemctl status lora-monitor.service" "$NC"
     print_message "- View logs: sudo journalctl -u lora-monitor.service -f" "$NC"
     print_message "- Restart service: sudo systemctl restart lora-monitor.service" "$NC"
-    print_message "- Web interface: http://localhost" "$NC"
+    print_message "- Web interface: http://localhost:8000" "$NC"
 else
     print_message "Installation completed but service failed to start." "$RED"
     print_message "Please check the logs: sudo journalctl -u lora-monitor.service -f" "$RED"
@@ -127,11 +103,6 @@ systemctl stop lora-monitor.service
 systemctl disable lora-monitor.service
 rm /etc/systemd/system/lora-monitor.service
 systemctl daemon-reload
-
-# Remove nginx configuration
-rm -f /etc/nginx/sites-enabled/lora-monitor
-rm -f /etc/nginx/sites-available/lora-monitor
-systemctl restart nginx
 
 # Remove virtual environment
 rm -rf "${SCRIPT_DIR}/venv"
