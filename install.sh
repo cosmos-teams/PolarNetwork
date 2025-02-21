@@ -1,50 +1,31 @@
 #!/bin/bash
 
 # Colors for output
-RED='\033[0;31m'
 GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+RED='\033[0;31m'
+NC='\033[0m'
 
-# Print colored message
-print_message() {
-    echo -e "${2}${1}${NC}"
-}
-
-# Check if script is run as root
+# Check if root
 if [ "$EUID" -ne 0 ]; then 
-    print_message "Please run as root (use sudo)" "$RED"
+    echo -e "${RED}Please run as root (use sudo)${NC}"
     exit 1
 fi
 
-# Get the actual path of the script
+# Get script directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
-print_message "Starting installation..." "$GREEN"
+echo -e "${GREEN}Starting installation...${NC}"
 
-# Update system
-print_message "Updating system packages..." "$YELLOW"
-apt-get update
-apt-get upgrade -y
+# Install dependencies
+apt-get update && apt-get install -y python3-pip python3-venv python3-dev
 
-# Install required system packages
-print_message "Installing required system packages..." "$YELLOW"
-apt-get install -y python3-pip python3-venv git python3-dev
-
-# Create virtual environment
-print_message "Setting up Python virtual environment..." "$YELLOW"
+# Setup Python environment
 python3 -m venv "${SCRIPT_DIR}/venv"
 source "${SCRIPT_DIR}/venv/bin/activate"
-
-# Upgrade pip and install wheel
 pip install --upgrade pip wheel
-
-# Install Python requirements
-print_message "Installing Python requirements..." "$YELLOW"
 pip install -r "${SCRIPT_DIR}/baseStation/requirements.txt"
 
-# Create systemd service file
-print_message "Creating systemd service..." "$YELLOW"
+# Create service
 cat > /etc/systemd/system/lora-monitor.service << EOL
 [Unit]
 Description=LoRa Sensor Monitor
@@ -58,62 +39,39 @@ Environment=PATH=${SCRIPT_DIR}/venv/bin:\$PATH
 WorkingDirectory=${SCRIPT_DIR}/baseStation
 ExecStart=${SCRIPT_DIR}/venv/bin/python3 ${SCRIPT_DIR}/baseStation/src/baseStation.py
 Restart=always
-RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
 EOL
 
-# Set correct permissions
-print_message "Setting permissions..." "$YELLOW"
+# Setup permissions and start
 chmod 644 /etc/systemd/system/lora-monitor.service
 chown $SUDO_USER:$SUDO_USER -R "${SCRIPT_DIR}"
-
-# Create logs directory with correct permissions
 mkdir -p "${SCRIPT_DIR}/baseStation/logs"
 chown $SUDO_USER:$SUDO_USER "${SCRIPT_DIR}/baseStation/logs"
 
-# Enable and start service
-print_message "Enabling and starting service..." "$YELLOW"
 systemctl daemon-reload
 systemctl enable lora-monitor.service
 systemctl start lora-monitor.service
 
-# Check if service is running
-if systemctl is-active --quiet lora-monitor.service; then
-    print_message "Installation completed successfully!" "$GREEN"
-    print_message "The service is now running." "$GREEN"
-    print_message "\nUseful commands:" "$YELLOW"
-    print_message "- Check service status: sudo systemctl status lora-monitor.service" "$NC"
-    print_message "- View logs: sudo journalctl -u lora-monitor.service -f" "$NC"
-    print_message "- Restart service: sudo systemctl restart lora-monitor.service" "$NC"
-    print_message "- Web interface: http://localhost:8000" "$NC"
-else
-    print_message "Installation completed but service failed to start." "$RED"
-    print_message "Please check the logs: sudo journalctl -u lora-monitor.service -f" "$RED"
-fi
-
 # Create uninstall script
-print_message "Creating uninstall script..." "$YELLOW"
 cat > "${SCRIPT_DIR}/uninstall.sh" << EOL
 #!/bin/bash
-if [ "\$EUID" -ne 0 ]; then 
-    echo "Please run as root (use sudo)"
-    exit 1
-fi
-
-# Stop and disable service
+[ "\$EUID" -ne 0 ] && echo "Please run as root" && exit 1
 systemctl stop lora-monitor.service
 systemctl disable lora-monitor.service
 rm /etc/systemd/system/lora-monitor.service
 systemctl daemon-reload
-
-# Remove virtual environment
 rm -rf "${SCRIPT_DIR}/venv"
-
-echo "Uninstallation completed"
+echo "Uninstalled"
 EOL
-
 chmod +x "${SCRIPT_DIR}/uninstall.sh"
 
-print_message "\nAn uninstall script has been created. To remove everything, run: sudo ./uninstall.sh" "$YELLOW" 
+# Final status
+if systemctl is-active --quiet lora-monitor.service; then
+    echo -e "${GREEN}Installation successful! Service is running.${NC}"
+    echo -e "Web interface: http://localhost:8000"
+    echo -e "View logs: sudo journalctl -u lora-monitor.service -f"
+else
+    echo -e "${RED}Service failed to start. Check logs with: journalctl -u lora-monitor.service -f${NC}"
+fi 
