@@ -54,19 +54,6 @@ systemctl daemon-reload
 systemctl enable lora-monitor.service
 systemctl start lora-monitor.service
 
-# Create uninstall script
-cat > "${SCRIPT_DIR}/uninstall.sh" << EOL
-#!/bin/bash
-[ "\$EUID" -ne 0 ] && echo "Please run as root" && exit 1
-systemctl stop lora-monitor.service
-systemctl disable lora-monitor.service
-rm /etc/systemd/system/lora-monitor.service
-systemctl daemon-reload
-rm -rf "${SCRIPT_DIR}/venv"
-echo "Uninstalled"
-EOL
-chmod +x "${SCRIPT_DIR}/uninstall.sh"
-
 # Final status
 if systemctl is-active --quiet lora-monitor.service; then
     echo -e "${GREEN}Installation successful! Service is running.${NC}"
