@@ -2,6 +2,28 @@
 
 This project implements a base station for receiving and monitoring LoRa sensor data. It includes a web interface for real-time data visualization.
 
+## Technology Stack
+
+### Backend
+- **Python 3.9+**: Core programming language
+- **FastAPI**: Modern web framework for building APIs
+- **Uvicorn**: Lightning-fast ASGI server
+- **Pydantic**: Data validation using Python type annotations
+
+### Hardware Interface
+- **SX126X**: LoRa module interface library
+- **PySerial**: Serial port communication
+
+### Frontend
+- **HTML/CSS**: Basic web interface
+- **JavaScript**: Real-time data updates
+- **Chart.js**: Data visualization
+- **WebSocket**: Real-time communication
+
+### System
+- **Systemd**: Service management
+- **Python venv**: Virtual environment for dependency isolation
+
 ## Requirements
 
 - Raspberry Pi (or similar Linux-based system)
